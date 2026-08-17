@@ -1,4 +1,4 @@
-import { Coins, History } from "lucide-react";
+import { Coins, History, ListChecks } from "lucide-react";
 import { Form, Link, redirect, useLoaderData } from "react-router";
 
 import type { Route } from "./+types/kids-home";
@@ -69,6 +69,10 @@ export default function KidsHome() {
           <h2 className="mt-5 font-display text-2xl font-semibold">{t("kids.history")}</h2>
         </Link>
       </div>
+      <Link className="mt-4 block rounded-3xl border bg-card/90 p-6" to="/kids/tasks">
+        <ListChecks className="size-7 text-primary" />
+        <h2 className="mt-5 font-display text-2xl font-semibold">{t("tasks.available.title")}</h2>
+      </Link>
     </KidsPage>
   );
 }

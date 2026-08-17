@@ -9,6 +9,8 @@ import {
   familyMembers,
   allowanceSchedules,
   moneyTransactions,
+  taskAssignments,
+  tasks,
   user,
   userProfiles,
 } from "../app/lib/db/schema";
@@ -133,6 +135,31 @@ if (
     startDate: "2026-09-01",
     nextRunAt: new Date("2026-08-31T22:00:00Z"),
   });
+}
+
+if (leo) {
+  let recyclingTask = await db.query.tasks.findFirst({
+    where: and(eq(tasks.familyId, family.id), eq(tasks.title, "Bajar el reciclaje")),
+    columns: { id: true },
+  });
+  if (!recyclingTask) {
+    recyclingTask = { id: uuidv7() };
+    await db.insert(tasks).values({
+      id: recyclingTask.id,
+      familyId: family.id,
+      title: "Bajar el reciclaje",
+      description: "Separa los envases y baja la bolsa al contenedor amarillo.",
+      type: "open",
+      rewardCents: 150,
+      openLimitCount: 3,
+      openLimitPeriod: "week",
+      createdByUserId: existingUser.id,
+    });
+  }
+  await db
+    .insert(taskAssignments)
+    .values({ id: uuidv7(), familyId: family.id, taskId: recyclingTask.id, childId: leo.id })
+    .onConflictDoNothing();
 }
 
 console.info(`Development parent ready: ${email}`);
