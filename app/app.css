@@ -1,0 +1,98 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 44 42% 95%;
+    --foreground: 179 51% 14%;
+    --card: 42 50% 98%;
+    --card-foreground: 179 51% 14%;
+    --primary: 179 51% 19%;
+    --primary-foreground: 42 50% 98%;
+    --secondary: 13 78% 65%;
+    --secondary-foreground: 179 51% 12%;
+    --muted: 43 25% 89%;
+    --muted-foreground: 178 16% 38%;
+    --accent: 47 88% 68%;
+    --accent-foreground: 179 51% 12%;
+    --border: 42 22% 82%;
+    --ring: 179 51% 25%;
+    --radius: 1.5rem;
+  }
+
+  .dark {
+    --background: 181 42% 8%;
+    --foreground: 42 42% 93%;
+    --card: 179 36% 12%;
+    --card-foreground: 42 42% 93%;
+    --primary: 46 84% 67%;
+    --primary-foreground: 181 42% 8%;
+    --secondary: 13 68% 61%;
+    --secondary-foreground: 181 42% 8%;
+    --muted: 179 25% 17%;
+    --muted-foreground: 42 17% 69%;
+    --accent: 47 74% 60%;
+    --accent-foreground: 181 42% 8%;
+    --border: 179 21% 23%;
+    --ring: 46 84% 67%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    background-image:
+      radial-gradient(circle at 8% 6%, hsl(var(--accent) / 0.18), transparent 24rem),
+      radial-gradient(circle at 90% 24%, hsl(var(--secondary) / 0.12), transparent 28rem);
+  }
+
+  ::selection {
+    background: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-4 ring-offset-background;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      scroll-behavior: auto !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .paper-grid {
+    background-image:
+      linear-gradient(hsl(var(--border) / 0.35) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--border) / 0.35) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    color-scheme: dark;
+  }
+}
