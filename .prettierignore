@@ -1,0 +1,9 @@
+.netlify
+.react-router
+build
+coverage
+node_modules
+playwright-report
+pnpm-lock.yaml
+test-results
+ARCHITECTURE.md

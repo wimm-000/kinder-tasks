@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#174b4a" />
+    <title>Sin conexión | Kinder Tasks</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: "Avenir Next", ui-sans-serif, system-ui, sans-serif;
+        background: #f7f3e9;
+        color: #123b3a;
+      }
+
+      body {
+        min-height: 100vh;
+        min-height: 100dvh;
+        margin: 0;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        box-sizing: border-box;
+      }
+
+      main {
+        width: min(100%, 520px);
+        border: 1px solid #d9d1bf;
+        border-radius: 32px;
+        background: #fffdf7;
+        padding: clamp(28px, 7vw, 48px);
+        box-sizing: border-box;
+        box-shadow: 0 24px 70px -36px rgb(13 44 43 / 0.45);
+      }
+
+      img {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+      }
+
+      h1 {
+        margin: 28px 0 12px;
+        font-family: Georgia, serif;
+        font-size: clamp(2rem, 7vw, 3rem);
+        line-height: 1.05;
+      }
+
+      p {
+        color: #557170;
+        font-size: 1.05rem;
+        line-height: 1.7;
+      }
+
+      button {
+        min-height: 48px;
+        margin-top: 16px;
+        padding: 0 24px;
+        border: 0;
+        border-radius: 999px;
+        background: #174b4a;
+        color: #fffdf7;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      button:focus-visible {
+        outline: 3px solid #ed8069;
+        outline-offset: 4px;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          background: #0c2929;
+          color: #f5efdf;
+        }
+
+        main {
+          border-color: #2e5554;
+          background: #123837;
+        }
+
+        p {
+          color: #c5bcaa;
+        }
+
+        button {
+          background: #f4cf63;
+          color: #0c2929;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img src="/app-icon.svg" alt="" />
+      <h1>Ahora mismo no tienes conexión</h1>
+      <p>
+        La aplicación volverá a cargar cuando recuperes internet. Más adelante podrás consultar aquí
+        la última información sincronizada de tu familia.
+      </p>
+      <button type="button" onclick="window.location.reload()">Volver a intentar</button>
+    </main>
+  </body>
+</html>

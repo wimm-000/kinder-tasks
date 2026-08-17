@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1786986570315,
+      "tag": "0000_thin_paladin",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1786989264183,
+      "tag": "0001_exotic_vampiro",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1786990185136,
+      "tag": "0002_tidy_sasquatch",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1786992674249,
+      "tag": "0003_tired_longshot",
+      "breakpoints": true
+    }
+  ]
+}

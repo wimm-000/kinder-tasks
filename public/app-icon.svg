@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Kinder Tasks</title>
+  <rect width="512" height="512" rx="116" fill="#174b4a"/>
+  <circle cx="256" cy="256" r="166" fill="#f4cf63"/>
+  <path d="M256 370V236" fill="none" stroke="#174b4a" stroke-linecap="round" stroke-width="34"/>
+  <path d="M252 250c-61 0-103-41-107-105 64-4 107 33 107 105Z" fill="#f7f3e9" stroke="#174b4a" stroke-linejoin="round" stroke-width="22"/>
+  <path d="M260 294c65 0 108-42 112-109-67-4-112 35-112 109Z" fill="#ed8069" stroke="#174b4a" stroke-linejoin="round" stroke-width="22"/>
+</svg>
