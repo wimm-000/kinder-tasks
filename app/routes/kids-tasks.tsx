@@ -1,9 +1,11 @@
-import { Form, Link, useActionData, useLoaderData } from "react-router";
+import { Link, useActionData, useLoaderData } from "react-router";
 import { v7 as uuidv7 } from "uuid";
 
 import type { Route } from "./+types/kids-tasks";
 import { FormMessage } from "~/components/feedback/form-message";
 import { KidsPage } from "~/components/layout/kids-page";
+import { OfflineCompletionForm } from "~/components/offline/offline-completion-form";
+import { OfflineController } from "~/components/offline/offline-controller";
 import { Button } from "~/components/ui/button";
 import { formatMoney } from "~/domain/money/money";
 import { childCsrfCookie, readCookie } from "~/lib/auth/child-session.server";
@@ -46,6 +48,11 @@ export default function KidsTasks() {
         message={result?.error ?? result?.success}
         variant={result?.error ? "error" : "success"}
       />
+      <OfflineController
+        familyId={page.context.familyId}
+        childId={page.context.childId}
+        csrf={page.csrf ?? ""}
+      />
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         {page.tasks.map((task) => (
           <article className="rounded-3xl border bg-card/90 p-6" key={task.assignmentId}>
@@ -54,12 +61,14 @@ export default function KidsTasks() {
               <p className="mt-2 text-muted-foreground">{task.description}</p>
             ) : null}
             <p className="mt-4 font-bold">{formatMoney(task.rewardCents)}</p>
-            <Form className="mt-5" method="post">
-              <input type="hidden" name="_csrf" value={page.csrf ?? ""} />
-              <input type="hidden" name="assignmentId" value={task.assignmentId} />
-              <input type="hidden" name="clientRequestId" value={task.clientRequestId} />
-              <Button type="submit">{t("tasks.available.complete")}</Button>
-            </Form>
+            <OfflineCompletionForm
+              familyId={page.context.familyId}
+              childId={page.context.childId}
+              assignmentId={task.assignmentId}
+              clientRequestId={task.clientRequestId}
+              csrf={page.csrf ?? ""}
+              label={t("tasks.available.complete")}
+            />
           </article>
         ))}
       </div>

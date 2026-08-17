@@ -232,6 +232,18 @@ export const es = {
   "tasks.pending.description": "Estas tareas están esperando la revisión de un adulto.",
   "tasks.pending.sent": "Tarea enviada para revisión.",
   "tasks.backToFamily": "Volver a la familia",
+  "offline.title": "Datos sin conexión",
+  "offline.description":
+    "Si lo activas, este dispositivo guardará temporalmente saldo, movimientos y tareas. Nunca guardaremos el PIN ni las cookies.",
+  "offline.remember": "Recordar datos en este dispositivo",
+  "offline.retry": "Reintentar sincronización",
+  "offline.syncing": "Sincronizando…",
+  "offline.synced": "Todo está sincronizado.",
+  "offline.error": "No hemos podido sincronizar. Lo intentaremos de nuevo.",
+  "offline.conflict": "Alguna tarea ya no estaba disponible y necesita revisión.",
+  "offline.enableFirst": "Activa primero los datos sin conexión desde Inicio.",
+  "offline.queued": "Guardada. Se enviará cuando vuelva la conexión.",
+  "offline.deviceEnabled": "Datos offline activados",
   "dashboard.title": "Tu espacio está preparado",
   "dashboard.description":
     "La autenticación ya está activa. En la siguiente fase podrás crear tu primera familia.",

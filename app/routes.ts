@@ -3,6 +3,7 @@ import { type RouteConfig, index, route } from "@react-router/dev/routes";
 export default [
   index("routes/home.tsx"),
   route("api/auth/*", "routes/api-auth.ts"),
+  route("api/kids/sync", "routes/api-kids-sync.ts"),
   route("login", "routes/login.tsx"),
   route("register", "routes/register.tsx"),
   route("verify-email", "routes/verify-email.tsx"),

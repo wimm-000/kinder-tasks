@@ -299,3 +299,17 @@ export async function revokeCurrentChildSession(request: Request) {
       .set({ revokedAt: new Date() })
       .where(eq(childSessions.id, context.sessionId));
 }
+
+export async function setCurrentDeviceOfflineEnabled(request: Request, enabled: boolean) {
+  const context = await requireChildContext(request);
+  await db
+    .update(childDeviceAuthorizations)
+    .set({ offlineEnabled: enabled })
+    .where(
+      and(
+        eq(childDeviceAuthorizations.id, context.deviceId),
+        eq(childDeviceAuthorizations.familyId, context.familyId),
+        isNull(childDeviceAuthorizations.revokedAt),
+      ),
+    );
+}

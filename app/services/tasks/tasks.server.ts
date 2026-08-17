@@ -292,13 +292,17 @@ export async function requestTaskCompletion(
   clientRequestId: string,
 ) {
   const context = await requireChildContext(request);
+  const existing = await db.query.taskCompletionRequests.findFirst({
+    where: and(
+      eq(taskCompletionRequests.clientRequestId, clientRequestId),
+      eq(taskCompletionRequests.familyId, context.familyId),
+      eq(taskCompletionRequests.childId, context.childId),
+    ),
+  });
+  if (existing) return existing.id;
   const available = await listChildTasks(request);
   const task = available.tasks.find((entry) => entry.assignmentId === assignmentId);
   if (!task) throw data("Esta tarea no está disponible.", { status: 409 });
-  const existing = await db.query.taskCompletionRequests.findFirst({
-    where: eq(taskCompletionRequests.clientRequestId, clientRequestId),
-  });
-  if (existing) return existing.id;
   const id = uuidv7();
   try {
     await db.transaction(async (tx) => {

@@ -70,6 +70,27 @@
         outline-offset: 4px;
       }
 
+      [hidden] {
+        display: none;
+      }
+      .summary {
+        margin-top: 24px;
+        border-top: 1px solid #d9d1bf;
+        padding-top: 20px;
+      }
+      .balance {
+        margin: 8px 0 20px;
+        color: inherit;
+        font-family: Georgia, serif;
+        font-size: 2.5rem;
+        font-weight: 700;
+      }
+      ul {
+        padding-left: 20px;
+        color: #557170;
+        line-height: 1.8;
+      }
+
       @media (prefers-color-scheme: dark) {
         :root {
           background: #0c2929;
@@ -97,10 +118,77 @@
       <img src="/app-icon.svg" alt="" />
       <h1>Ahora mismo no tienes conexión</h1>
       <p>
-        La aplicación volverá a cargar cuando recuperes internet. Más adelante podrás consultar aquí
-        la última información sincronizada de tu familia.
+        Puedes consultar los últimos datos guardados si un adulto activó esta opción en el
+        dispositivo.
       </p>
-      <button type="button" onclick="window.location.reload()">Volver a intentar</button>
+      <section class="summary" id="snapshot" hidden>
+        <h2>Últimos datos sincronizados</h2>
+        <p class="balance" id="balance"></p>
+        <p id="synced-at"></p>
+        <h3>Movimientos recientes</h3>
+        <ul id="transactions"></ul>
+        <h3>Tareas disponibles</h3>
+        <ul id="tasks"></ul>
+      </section>
+      <p id="no-data">No hay datos offline disponibles en este dispositivo.</p>
+      <button id="retry" type="button">Volver a intentar</button>
     </main>
+    <script>
+      document.getElementById("retry").addEventListener("click", () => window.location.reload());
+      const request = indexedDB.open("kinder-tasks-offline", 1);
+      request.onsuccess = () => {
+        const database = request.result;
+        if (!database.objectStoreNames.contains("snapshots")) return;
+        const activeKey = sessionStorage.getItem("kinder-offline-active-key");
+        if (!activeKey) return;
+        const read = database
+          .transaction("snapshots", "readonly")
+          .objectStore("snapshots")
+          .get(activeKey);
+        read.onsuccess = () => {
+          const latest = read.result;
+          if (!latest || new Date(latest.expiresAt) <= new Date()) return;
+          document.getElementById("snapshot").hidden = false;
+          document.getElementById("no-data").hidden = true;
+          document.getElementById("balance").textContent = new Intl.NumberFormat("es-ES", {
+            style: "currency",
+            currency: "EUR",
+          }).format(latest.balanceCents / 100);
+          document.getElementById("synced-at").textContent =
+            `Sincronizado: ${new Intl.DateTimeFormat("es-ES", {
+              dateStyle: "medium",
+              timeStyle: "short",
+            }).format(new Date(latest.syncedAt))}`;
+          const transactions = document.getElementById("transactions");
+          for (const movement of latest.transactions.slice(0, 10)) {
+            const item = document.createElement("li");
+            item.textContent = `${movement.description} · ${new Intl.NumberFormat("es-ES", {
+              style: "currency",
+              currency: "EUR",
+            }).format(movement.amountCents / 100)}`;
+            transactions.append(item);
+          }
+          if (!latest.transactions.length) {
+            const item = document.createElement("li");
+            item.textContent = "No había movimientos recientes.";
+            transactions.append(item);
+          }
+          const list = document.getElementById("tasks");
+          for (const task of latest.tasks) {
+            const item = document.createElement("li");
+            item.textContent = `${task.title} · ${new Intl.NumberFormat("es-ES", {
+              style: "currency",
+              currency: "EUR",
+            }).format(task.rewardCents / 100)}`;
+            list.append(item);
+          }
+          if (!latest.tasks.length) {
+            const item = document.createElement("li");
+            item.textContent = "No había tareas disponibles.";
+            list.append(item);
+          }
+        };
+      };
+    </script>
   </body>
 </html>

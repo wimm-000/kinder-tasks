@@ -18,6 +18,8 @@ let familyId: string;
 let childId: string;
 let childRequest: Request;
 let taskId: string;
+let childCookieHeader: string;
+let csrfToken: string;
 beforeAll(async () => {
   vi.stubEnv("TURSO_DATABASE_URL", databaseUrl);
   vi.stubEnv("APP_URL", "http://localhost:5173");
@@ -54,8 +56,12 @@ beforeAll(async () => {
     childId,
     "2468",
   );
+  const { childCsrfCookie } = await import("~/lib/auth/child-session.server");
+  const csrfPair = unlocked.csrfCookie.split(";")[0];
+  csrfToken = (await childCsrfCookie.parse(csrfPair)) as string;
+  childCookieHeader = `${devicePair}; ${unlocked.sessionCookie.split(";")[0]}; ${csrfPair}`;
   childRequest = new Request("http://localhost/kids/tasks", {
-    headers: { cookie: `${devicePair}; ${unlocked.sessionCookie.split(";")[0]}` },
+    headers: { cookie: childCookieHeader },
   });
 });
 afterAll(async () => {
@@ -114,6 +120,34 @@ describe("task completion and rewards", () => {
         where: eq(taskCompletionRequests.id, first),
       }),
     ).toMatchObject({ status: "approved" });
+  });
+  it("accepts repeated sync payloads without creating another request", async () => {
+    const { action } = await import("~/routes/api-kids-sync");
+    const assignmentId = (await db.query.taskAssignments.findFirst())!.id;
+    const invoke = () => {
+      const request = new Request("http://localhost/api/kids/sync", {
+        method: "POST",
+        headers: {
+          cookie: childCookieHeader,
+          origin: "http://localhost",
+          "content-type": "application/json",
+          "x-csrf-token": csrfToken,
+        },
+        body: JSON.stringify({
+          requests: [
+            {
+              assignmentId,
+              clientRequestId: "0198b123-0000-7000-8000-000000000399",
+            },
+          ],
+        }),
+      });
+      return action({ request, params: {}, context: {} as never } as never);
+    };
+    expect(await invoke()).toMatchObject({ results: [{ status: "synced" }] });
+    expect(await invoke()).toMatchObject({ results: [{ status: "synced" }] });
+    const { taskCompletionRequests } = await import("~/lib/db/schema");
+    expect(await db.select().from(taskCompletionRequests)).toHaveLength(1);
   });
   it("edits assignments and archives without deleting history", async () => {
     await taskService.updateTask({

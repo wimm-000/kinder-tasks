@@ -2,7 +2,7 @@
 
 PWA familiar para organizar tareas, pagas y ahorro con perfiles separados para adultos y menores.
 
-El alcance y las decisiones de arquitectura están documentados en [ARCHITECTURE.md](./ARCHITECTURE.md). Los resultados de cada fase están en [docs/PHASE_1.md](./docs/PHASE_1.md), [docs/PHASE_2.md](./docs/PHASE_2.md), [docs/PHASE_3.md](./docs/PHASE_3.md), [docs/PHASE_4.md](./docs/PHASE_4.md), [docs/PHASE_5.md](./docs/PHASE_5.md) y [docs/PHASE_6.md](./docs/PHASE_6.md).
+El alcance y las decisiones de arquitectura están documentados en [ARCHITECTURE.md](./ARCHITECTURE.md). Los resultados de cada fase están en [docs/PHASE_1.md](./docs/PHASE_1.md), [docs/PHASE_2.md](./docs/PHASE_2.md), [docs/PHASE_3.md](./docs/PHASE_3.md), [docs/PHASE_4.md](./docs/PHASE_4.md), [docs/PHASE_5.md](./docs/PHASE_5.md), [docs/PHASE_6.md](./docs/PHASE_6.md) y [docs/PHASE_7.md](./docs/PHASE_7.md).
 
 ## Requisitos
 

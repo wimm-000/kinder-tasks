@@ -105,7 +105,14 @@ export default function Children() {
               className="flex items-center justify-between gap-3 rounded-2xl bg-muted p-4"
               key={device.id}
             >
-              <span className="font-bold">{device.name ?? "Dispositivo"}</span>
+              <span className="font-bold">
+                {device.name ?? "Dispositivo"}
+                {device.offlineEnabled ? (
+                  <span className="mt-1 block text-xs text-primary">
+                    {t("offline.deviceEnabled")}
+                  </span>
+                ) : null}
+              </span>
               {!device.revokedAt ? (
                 <Form method="post">
                   <input type="hidden" name="intent" value="revoke" />

@@ -47,13 +47,104 @@ test("submits and approves a task reward exactly once", async ({ page }, testInf
   await expect(page).toHaveURL(/\/kids\/unlock\//);
   await page.getByLabel("PIN").fill("2468");
   await page.getByRole("button", { name: "Entrar en mi perfil" }).click();
+  await page.getByLabel("Recordar datos en este dispositivo").check();
+  await expect(page.getByLabel("Recordar datos en este dispositivo")).toBeChecked();
+  await expect(page.getByLabel("Recordar datos en este dispositivo")).toBeEnabled();
+  await expect
+    .poll(() =>
+      page.evaluate(async () => {
+        const database = await new Promise<IDBDatabase>((resolve, reject) => {
+          const request = indexedDB.open("kinder-tasks-offline", 1);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        const snapshots = await new Promise<unknown[]>((resolve, reject) => {
+          const request = database
+            .transaction("snapshots", "readonly")
+            .objectStore("snapshots")
+            .getAll();
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        database.close();
+        const serialized = JSON.stringify(snapshots).toLowerCase();
+        return {
+          count: snapshots.length,
+          containsSecret:
+            serialized.includes("pin") ||
+            serialized.includes("cookie") ||
+            serialized.includes("token"),
+        };
+      }),
+    )
+    .toEqual({ count: 1, containsSecret: false });
   await page.getByRole("link", { name: "Mis tareas" }).click();
   const task = page.locator("article").filter({ hasText: title });
+  await expect(task).toBeVisible();
+  await page.context().setOffline(true);
   await task.getByRole("button", { name: "Marcar como terminada" }).click();
-  await expect(page.getByRole("status")).toContainText("Tarea enviada");
+  await expect(page.getByText("Guardada. Se enviará cuando vuelva la conexión.")).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(async () => {
+        const database = await new Promise<IDBDatabase>((resolve, reject) => {
+          const request = indexedDB.open("kinder-tasks-offline", 1);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        const entries = await new Promise<Array<{ status: string }>>((resolve, reject) => {
+          const request = database.transaction("queue", "readonly").objectStore("queue").getAll();
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        database.close();
+        return entries.some((entry) => entry.status === "queued");
+      }),
+    )
+    .toBe(true);
+  await page.context().setOffline(false);
+  await expect
+    .poll(
+      () =>
+        page.evaluate(async () => {
+          const database = await new Promise<IDBDatabase>((resolve, reject) => {
+            const request = indexedDB.open("kinder-tasks-offline", 1);
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+          });
+          const entries = await new Promise<Array<{ status: string }>>((resolve, reject) => {
+            const request = database.transaction("queue", "readonly").objectStore("queue").getAll();
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+          });
+          database.close();
+          return entries.some((entry) => entry.status === "synced");
+        }),
+      { timeout: 15_000 },
+    )
+    .toBe(true);
 
   await page.goto("/kids/home");
   await page.getByRole("button", { name: "Salir del modo infantil" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect
+    .poll(() =>
+      page.evaluate(async () => {
+        const database = await new Promise<IDBDatabase>((resolve, reject) => {
+          const request = indexedDB.open("kinder-tasks-offline", 1);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        const count = await new Promise<number>((resolve, reject) => {
+          const request = database.transaction("queue", "readonly").objectStore("queue").count();
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        database.close();
+        return count;
+      }),
+    )
+    .toBe(0);
   await signIn(page);
   await page.getByRole("link", { name: "Solicitudes pendientes", exact: true }).click();
   const request = page.locator("article").filter({ hasText: title });

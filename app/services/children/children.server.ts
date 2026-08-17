@@ -55,6 +55,7 @@ export async function listChildren(userId: string, familyId: string) {
       expiresAt: childDeviceAuthorizations.expiresAt,
       lastUsedAt: childDeviceAuthorizations.lastUsedAt,
       revokedAt: childDeviceAuthorizations.revokedAt,
+      offlineEnabled: childDeviceAuthorizations.offlineEnabled,
     })
     .from(childDeviceAuthorizations)
     .where(eq(childDeviceAuthorizations.familyId, familyId))
