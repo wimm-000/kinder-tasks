@@ -12,6 +12,7 @@ import { useEffect } from "react";
 
 import type { Route } from "./+types/root";
 import stylesheet from "./app.css?url";
+import { NavigationPending } from "./components/feedback/navigation-pending";
 import { t } from "./lib/i18n";
 
 export const links: Route.LinksFunction = () => [
@@ -74,7 +75,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  return <Outlet />;
+  return (
+    <>
+      <NavigationPending />
+      <Outlet />
+    </>
+  );
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
