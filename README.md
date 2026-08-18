@@ -71,10 +71,12 @@ Variables requeridas en producción:
 - `BETTER_AUTH_SECRET`, aleatorio y con un mínimo de 32 caracteres
 - `APP_URL`, con la URL HTTPS canónica
 - `EMAIL_PROVIDER`
+- `RESEND_API_KEY`, requerido cuando `EMAIL_PROVIDER=resend`
+- `EMAIL_FROM`, remitente verificado o sandbox de Resend
 - `SUPERADMIN_EMAILS`, lista separada por comas de cuentas verificadas que pueden recibir el rol global
 
 Las migraciones se aplican explícitamente con `pnpm db:migrate` antes del despliegue. No se ejecutan durante cada arranque serverless.
 
 Netlify ejecuta diariamente `process-retention` para aplicar los periodos documentados. `SUPERADMIN_EMAILS` solo promociona cuentas activas y verificadas; cada promoción queda auditada y la lista no degrada administradores existentes.
 
-El proveedor `console` solo funciona en desarrollo y escribe enlaces sensibles en la consola local. Producción permanecerá bloqueada hasta conectar un proveedor transaccional a la interfaz `EmailService`.
+El proveedor `console` solo funciona en desarrollo y escribe enlaces sensibles en la consola local. En producción utiliza `EMAIL_PROVIDER=resend`. Para pruebas con el sandbox puede usarse `Kinder Tasks <onboarding@resend.dev>` como `EMAIL_FROM`; Resend limita ese remitente al correo asociado con la cuenta. Verifica un dominio antes de enviar invitaciones a otras direcciones.

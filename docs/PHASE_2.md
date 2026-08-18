@@ -75,7 +75,7 @@ La interfaz `EmailService` desacopla Better Auth del proveedor final.
 
 En desarrollo, `ConsoleEmailService` muestra el enlace completo en la consola para poder verificar y recuperar cuentas sin proveedor externo. Este adaptador rechaza envíos en producción para impedir que tokens sensibles terminen en logs reales.
 
-Antes de producción debe añadirse un adaptador transaccional y ampliar `EMAIL_PROVIDER`.
+La Fase 8 añadió `ResendEmailService`. En producción se configura con `EMAIL_PROVIDER=resend`, `RESEND_API_KEY` y `EMAIL_FROM`; el adaptador de consola continúa bloqueado fuera de desarrollo.
 
 ## Datos de ejemplo
 

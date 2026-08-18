@@ -275,11 +275,10 @@ Se partirá de la plantilla oficial de React Router para Netlify y se utilizará
 - `TURSO_DATABASE_URL`
 - `TURSO_AUTH_TOKEN`
 - `BETTER_AUTH_SECRET`
-- `BETTER_AUTH_URL`
 - `APP_URL`
 - `EMAIL_PROVIDER`
-- Credenciales específicas del proveedor de correo
-- `ADMIN_BOOTSTRAP_EMAIL`, solo durante aprovisionamiento controlado
+- `RESEND_API_KEY` y `EMAIL_FROM` cuando se utiliza Resend
+- `SUPERADMIN_EMAILS`, para aprovisionamiento controlado de cuentas verificadas
 - Secretos para tareas internas, si finalmente son necesarios
 
 Solo variables expresamente públicas llevarán prefijo de Vite.

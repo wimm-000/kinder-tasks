@@ -25,7 +25,7 @@ Cerrar el alcance operativo con administración global aislada, derechos de expo
 2. Aplicar `pnpm db:migrate` antes de desplegar la versión.
 3. Confirmar en Netlify que `process-retention` está programada a las `03:17 UTC`.
 4. Mantener `BETTER_AUTH_SECRET` estable; también protege la seudonimización de IP.
-5. Conectar un proveedor transaccional antes de producción, ya que la recuperación depende del correo.
+5. Configurar `EMAIL_PROVIDER=resend`, `RESEND_API_KEY` y `EMAIL_FROM`; la recuperación depende del correo.
 
 El job de retención es idempotente. Los triggers del ledger solo permiten eliminar movimientos y ejecuciones cuando la familia está `pending_deletion`, tiene `purge_after` vencido y el borrado ocurre dentro de la secuencia de purgado.
 

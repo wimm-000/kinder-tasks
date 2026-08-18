@@ -1,14 +1,30 @@
 import { z } from "zod";
 
-const serverEnvSchema = z.object({
-  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  TURSO_DATABASE_URL: z.string().min(1),
-  TURSO_AUTH_TOKEN: z.string().min(1).optional(),
-  BETTER_AUTH_SECRET: z.string().min(32),
-  APP_URL: z.url(),
-  EMAIL_PROVIDER: z.enum(["console"]).default("console"),
-  SUPERADMIN_EMAILS: z.array(z.email()).default([]),
-});
+const serverEnvSchema = z
+  .object({
+    NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+    TURSO_DATABASE_URL: z.string().min(1),
+    TURSO_AUTH_TOKEN: z.string().min(1).optional(),
+    BETTER_AUTH_SECRET: z.string().min(32),
+    APP_URL: z.url(),
+    EMAIL_PROVIDER: z.enum(["console", "resend"]).default("console"),
+    RESEND_API_KEY: z.string().min(1).optional(),
+    EMAIL_FROM: z.string().min(3).optional(),
+    SUPERADMIN_EMAILS: z.array(z.email()).default([]),
+  })
+  .superRefine((env, context) => {
+    if (env.EMAIL_PROVIDER !== "resend") return;
+    if (!env.RESEND_API_KEY) {
+      context.addIssue({
+        code: "custom",
+        path: ["RESEND_API_KEY"],
+        message: "Required for Resend",
+      });
+    }
+    if (!env.EMAIL_FROM) {
+      context.addIssue({ code: "custom", path: ["EMAIL_FROM"], message: "Required for Resend" });
+    }
+  });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
 
@@ -28,6 +44,8 @@ export function getServerEnv(): ServerEnv {
       (isProduction ? undefined : "kinder-tasks-local-development-secret-change-before-production"),
     APP_URL: process.env.APP_URL ?? (isProduction ? undefined : "http://localhost:5173"),
     EMAIL_PROVIDER: process.env.EMAIL_PROVIDER,
+    RESEND_API_KEY: process.env.RESEND_API_KEY || undefined,
+    EMAIL_FROM: process.env.EMAIL_FROM || undefined,
     SUPERADMIN_EMAILS: (process.env.SUPERADMIN_EMAILS ?? "")
       .split(",")
       .map((email) => email.trim().toLowerCase())
