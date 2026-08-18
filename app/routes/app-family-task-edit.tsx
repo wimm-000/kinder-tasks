@@ -4,6 +4,7 @@ import { Form, Link, redirect, useActionData, useLoaderData } from "react-router
 import type { Route } from "./+types/app-family-task-edit";
 import { FormMessage } from "~/components/feedback/form-message";
 import { AppPage } from "~/components/layout/app-page";
+import { TaskScheduleFields } from "~/components/tasks/task-schedule-fields";
 import { Button } from "~/components/ui/button";
 import { TextField } from "~/components/ui/text-field";
 import { parseMoneyToCents } from "~/domain/money/money";
@@ -71,27 +72,30 @@ export default function EditTask() {
           label={t("tasks.form.description")}
           defaultValue={task.description ?? ""}
         />
-        <label className="block text-sm font-bold">
-          {t("tasks.form.type")}
-          <select
-            className="mt-2 min-h-11 w-full rounded-xl border bg-background px-3"
-            name="type"
-            defaultValue={task.type}
-          >
-            <option value="one_off">{t("tasks.form.oneOff")}</option>
-            <option value="recurring">{t("tasks.form.recurring")}</option>
-            <option value="open">{t("tasks.form.open")}</option>
-          </select>
-        </label>
+        <TaskScheduleFields
+          defaults={{
+            type: task.type as "one_off" | "recurring" | "open",
+            recurrenceUnit: task.recurrenceUnit as "daily" | "weekly" | "monthly" | null,
+            recurrenceInterval: task.recurrenceInterval,
+            recurrenceWeekday: task.recurrenceWeekday,
+            recurrenceMonthDay: task.recurrenceMonthDay,
+            openLimitCount: task.openLimitCount,
+            openLimitPeriod: task.openLimitPeriod as "day" | "week" | "month" | null,
+          }}
+        />
         <TextField
           name="reward"
           label={t("tasks.form.reward")}
+          hint="Importe que se suma al saldo por cada realización aprobada. Usa 0 si no hay recompensa."
           inputMode="decimal"
           defaultValue={String(task.rewardCents / 100).replace(".", ",")}
           required
         />
         <fieldset>
           <legend className="text-sm font-bold">{t("tasks.form.assign")}</legend>
+          <p className="mt-2 text-sm text-muted-foreground">
+            La tarea aparecerá únicamente en los perfiles seleccionados.
+          </p>
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             {page.children.map((child) => (
               <label
@@ -109,60 +113,6 @@ export default function EditTask() {
             ))}
           </div>
         </fieldset>
-        <label className="block text-sm font-bold">
-          {t("tasks.form.recurrence")}
-          <select
-            className="mt-2 min-h-11 w-full rounded-xl border bg-background px-3"
-            name="recurrenceUnit"
-            defaultValue={task.recurrenceUnit ?? "daily"}
-          >
-            <option value="daily">Diaria</option>
-            <option value="weekly">Semanal</option>
-            <option value="monthly">Mensual</option>
-          </select>
-        </label>
-        <TextField
-          name="recurrenceInterval"
-          label={t("tasks.form.interval")}
-          type="number"
-          min={1}
-          defaultValue={task.recurrenceInterval ?? 1}
-        />
-        <TextField
-          name="recurrenceWeekday"
-          label={t("allowance.weekday")}
-          type="number"
-          min={1}
-          max={7}
-          defaultValue={task.recurrenceWeekday ?? undefined}
-        />
-        <TextField
-          name="recurrenceMonthDay"
-          label={t("allowance.monthDay")}
-          type="number"
-          min={1}
-          max={31}
-          defaultValue={task.recurrenceMonthDay ?? undefined}
-        />
-        <TextField
-          name="openLimitCount"
-          label={t("tasks.form.limit")}
-          type="number"
-          min={1}
-          defaultValue={task.openLimitCount ?? 1}
-        />
-        <label className="block text-sm font-bold">
-          {t("tasks.form.limitPeriod")}
-          <select
-            className="mt-2 min-h-11 w-full rounded-xl border bg-background px-3"
-            name="openLimitPeriod"
-            defaultValue={task.openLimitPeriod ?? "day"}
-          >
-            <option value="day">Día</option>
-            <option value="week">Semana</option>
-            <option value="month">Mes</option>
-          </select>
-        </label>
         <FormMessage message={result?.error} />
         <Button type="submit">{t("tasks.form.save")}</Button>
       </Form>

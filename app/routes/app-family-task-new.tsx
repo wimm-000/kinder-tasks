@@ -4,6 +4,7 @@ import { Form, Link, redirect, useActionData, useLoaderData } from "react-router
 import type { Route } from "./+types/app-family-task-new";
 import { FormMessage } from "~/components/feedback/form-message";
 import { AppPage } from "~/components/layout/app-page";
+import { TaskScheduleFields } from "~/components/tasks/task-schedule-fields";
 import { Button } from "~/components/ui/button";
 import { TextField } from "~/components/ui/text-field";
 import { parseMoneyToCents } from "~/domain/money/money";
@@ -62,23 +63,20 @@ export default function NewTask() {
       <Form className="max-w-2xl space-y-5 rounded-3xl border bg-card/80 p-7" method="post">
         <TextField name="title" label={t("tasks.form.title")} required />
         <TextField name="description" label={t("tasks.form.description")} />
-        <label className="block text-sm font-bold">
-          {t("tasks.form.type")}
-          <select className="mt-2 min-h-11 w-full rounded-xl border bg-background px-3" name="type">
-            <option value="one_off">{t("tasks.form.oneOff")}</option>
-            <option value="recurring">{t("tasks.form.recurring")}</option>
-            <option value="open">{t("tasks.form.open")}</option>
-          </select>
-        </label>
+        <TaskScheduleFields />
         <TextField
           name="reward"
           label={t("tasks.form.reward")}
+          hint="Importe que se suma al saldo por cada realización aprobada. Usa 0 si no hay recompensa."
           inputMode="decimal"
           defaultValue="0"
           required
         />
         <fieldset>
           <legend className="text-sm font-bold">{t("tasks.form.assign")}</legend>
+          <p className="mt-2 text-sm text-muted-foreground">
+            La tarea aparecerá únicamente en los perfiles seleccionados.
+          </p>
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             {page.children.map((child) => (
               <label
@@ -91,56 +89,6 @@ export default function NewTask() {
             ))}
           </div>
         </fieldset>
-        <label className="block text-sm font-bold">
-          {t("tasks.form.recurrence")}
-          <select
-            className="mt-2 min-h-11 w-full rounded-xl border bg-background px-3"
-            name="recurrenceUnit"
-          >
-            <option value="daily">Diaria</option>
-            <option value="weekly">Semanal</option>
-            <option value="monthly">Mensual</option>
-          </select>
-        </label>
-        <TextField
-          name="recurrenceInterval"
-          label={t("tasks.form.interval")}
-          type="number"
-          min={1}
-          defaultValue={1}
-        />
-        <TextField
-          name="recurrenceWeekday"
-          label={t("allowance.weekday")}
-          type="number"
-          min={1}
-          max={7}
-        />
-        <TextField
-          name="recurrenceMonthDay"
-          label={t("allowance.monthDay")}
-          type="number"
-          min={1}
-          max={31}
-        />
-        <TextField
-          name="openLimitCount"
-          label={t("tasks.form.limit")}
-          type="number"
-          min={1}
-          defaultValue={1}
-        />
-        <label className="block text-sm font-bold">
-          {t("tasks.form.limitPeriod")}
-          <select
-            className="mt-2 min-h-11 w-full rounded-xl border bg-background px-3"
-            name="openLimitPeriod"
-          >
-            <option value="day">Día</option>
-            <option value="week">Semana</option>
-            <option value="month">Mes</option>
-          </select>
-        </label>
         <FormMessage message={result?.error} />
         <Button type="submit">{t("tasks.form.save")}</Button>
       </Form>
