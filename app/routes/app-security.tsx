@@ -1,8 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { KeyRound, Laptop, ShieldX, Trash2 } from "lucide-react";
+import { Download, KeyRound, Laptop, ShieldX, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { useLoaderData, useNavigate } from "react-router";
+import { Form, redirect, useActionData, useLoaderData, useNavigate } from "react-router";
 
 import type { Route } from "./+types/app-security";
 import { FormMessage } from "~/components/feedback/form-message";
@@ -11,14 +11,16 @@ import { Button } from "~/components/ui/button";
 import { TextField } from "~/components/ui/text-field";
 import { getAuthErrorMessage } from "~/features/auth/auth-errors";
 import { authClient } from "~/lib/auth/auth-client";
+import { auth } from "~/lib/auth/auth.server";
 import { requireAdultSession } from "~/lib/auth/session.server";
 import { t } from "~/lib/i18n";
+import { requireSameOrigin } from "~/lib/security/origin.server";
 import {
   changePasswordSchema,
   deleteAccountSchema,
   type ChangePasswordInput,
-  type DeleteAccountInput,
 } from "~/schemas/auth";
+import { requestAccountDeletion } from "~/services/privacy/privacy.server";
 
 type ListedSession = NonNullable<
   Awaited<ReturnType<typeof authClient.listSessions>>["data"]
@@ -33,6 +35,30 @@ export async function loader({ request }: Route.LoaderArgs) {
   return { name: context.auth.user.name, currentSessionId: context.auth.session.id };
 }
 
+export async function action({ request }: Route.ActionArgs) {
+  requireSameOrigin(request);
+  const context = await requireAdultSession(request);
+  const parsed = deleteAccountSchema.safeParse(Object.fromEntries(await request.formData()));
+  if (!parsed.success) return { error: "Comprueba la contraseña y escribe ELIMINAR." };
+
+  try {
+    const verified = await auth.api.verifyPassword({
+      headers: request.headers,
+      body: { password: parsed.data.password },
+    });
+    if (!verified.status) return { error: t("auth.error.invalidCredentials") };
+  } catch {
+    return { error: t("auth.error.invalidCredentials") };
+  }
+
+  await requestAccountDeletion({
+    userId: context.auth.user.id,
+    email: context.auth.user.email,
+    request,
+  });
+  throw redirect("/login?accountDeletion=pending");
+}
+
 export default function Security() {
   const data = useLoaderData<typeof loader>();
 
@@ -41,6 +67,7 @@ export default function Security() {
       <div className="grid gap-6 lg:grid-cols-2">
         <ChangePasswordCard />
         <SessionsCard currentSessionId={data.currentSessionId} />
+        <ExportAccountCard />
         <DeleteAccountCard />
       </div>
     </AppPage>
@@ -190,26 +217,7 @@ function SessionsCard({ currentSessionId }: { currentSessionId: string }) {
 }
 
 function DeleteAccountCard() {
-  const navigate = useNavigate();
-  const [requestError, setRequestError] = useState<string>();
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<DeleteAccountInput>({
-    resolver: zodResolver(deleteAccountSchema),
-    defaultValues: { password: "", confirmation: "" as "ELIMINAR" },
-  });
-
-  const onSubmit = handleSubmit(async ({ password }) => {
-    setRequestError(undefined);
-    const { error } = await authClient.deleteUser({ password });
-    if (error) {
-      setRequestError(getAuthErrorMessage(error));
-      return;
-    }
-    navigate("/", { replace: true });
-  });
+  const result = useActionData<typeof action>();
 
   return (
     <section className="rounded-[1.75rem] border border-secondary/40 bg-secondary/5 p-6 shadow-sm sm:p-8 lg:col-span-2">
@@ -218,34 +226,54 @@ function DeleteAccountCard() {
       <p className="mt-3 max-w-2xl leading-7 text-muted-foreground">
         {t("security.delete.description")}
       </p>
-      <form className="mt-6 grid max-w-2xl gap-5 sm:grid-cols-2" noValidate onSubmit={onSubmit}>
+      <Form className="mt-6 grid max-w-2xl gap-5 sm:grid-cols-2" method="post">
         <div className="sm:col-span-2">
-          <FormMessage message={requestError} />
+          <FormMessage message={result?.error} />
         </div>
         <TextField
           autoComplete="current-password"
+          name="password"
+          required
           type="password"
           label={t("security.delete.password")}
-          error={errors.password ? t("auth.error.invalidCredentials") : undefined}
-          {...register("password")}
         />
         <TextField
           autoComplete="off"
+          name="confirmation"
+          pattern="ELIMINAR"
+          required
           label={t("security.delete.confirmation")}
-          error={errors.confirmation ? t("security.delete.confirmationError") : undefined}
-          {...register("confirmation")}
+          hint="Escribe ELIMINAR para confirmar. Tendrás 30 días para recuperar la cuenta."
         />
         <div className="sm:col-span-2">
           <Button
             className="bg-secondary text-secondary-foreground hover:bg-secondary/85"
-            disabled={isSubmitting}
             type="submit"
           >
             <Trash2 className="size-4" />
-            {isSubmitting ? t("security.delete.submitting") : t("security.delete.submit")}
+            {t("security.delete.submit")}
           </Button>
         </div>
-      </form>
+      </Form>
+    </section>
+  );
+}
+
+function ExportAccountCard() {
+  return (
+    <section className="rounded-[1.75rem] border bg-card/80 p-6 shadow-sm sm:p-8 lg:col-span-2">
+      <Download className="size-7 text-primary" />
+      <h2 className="mt-6 font-display text-2xl font-semibold">Exportar tus datos</h2>
+      <p className="mt-3 max-w-2xl leading-7 text-muted-foreground">
+        Descarga en JSON tu cuenta y los datos de las familias a las que perteneces. No se incluyen
+        contraseñas, PIN, tokens ni direcciones IP.
+      </p>
+      <Button className="mt-6" variant="outline" asChild>
+        <a href="/app/export">
+          <Download className="size-4" />
+          Descargar exportación
+        </a>
+      </Button>
     </section>
   );
 }

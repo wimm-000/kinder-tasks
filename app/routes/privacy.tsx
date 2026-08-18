@@ -13,6 +13,7 @@ export default function Privacy() {
       sections={[
         { title: t("legal.privacy.children.title"), body: t("legal.privacy.children.body") },
         { title: t("legal.privacy.control.title"), body: t("legal.privacy.control.body") },
+        { title: t("legal.privacy.retention.title"), body: t("legal.privacy.retention.body") },
       ]}
     />
   );

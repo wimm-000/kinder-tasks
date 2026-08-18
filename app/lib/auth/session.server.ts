@@ -3,6 +3,8 @@ import { redirect } from "react-router";
 
 import { db } from "~/lib/db/client.server";
 import { userProfiles } from "~/lib/db/schema";
+import { bootstrapSuperadmin } from "~/services/admin/bootstrap.server";
+import { writeAuditLog } from "~/services/audit/audit.server";
 
 import { auth, type AuthSession } from "./auth.server";
 
@@ -15,9 +17,19 @@ export interface AdultSessionContext {
   };
 }
 
+export interface SuperadminSessionContext extends AdultSessionContext {
+  profile: AdultSessionContext["profile"] & { globalRole: "superadmin" };
+}
+
 export async function getAdultSession(request: Request): Promise<AdultSessionContext | null> {
   const currentSession = await auth.api.getSession({ headers: request.headers });
   if (!currentSession) return null;
+
+  await bootstrapSuperadmin({
+    id: currentSession.user.id,
+    email: currentSession.user.email,
+    emailVerified: currentSession.user.emailVerified,
+  });
 
   const profile = await db.query.userProfiles.findFirst({
     where: eq(userProfiles.userId, currentSession.user.id),
@@ -45,6 +57,25 @@ export async function requireAdultSession(request: Request): Promise<AdultSessio
     throw redirect(`/login?redirectTo=${destination}`);
   }
   return context;
+}
+
+export async function requireSuperadmin(request: Request): Promise<SuperadminSessionContext> {
+  const context = await requireAdultSession(request);
+  if (context.profile.globalRole !== "superadmin") {
+    await writeAuditLog({
+      actor: { type: "user", userId: context.auth.user.id },
+      action: "superadmin.access",
+      targetType: "admin",
+      result: "denied",
+      request,
+    });
+    throw new Response("Forbidden", { status: 403 });
+  }
+
+  return {
+    ...context,
+    profile: { ...context.profile, globalRole: "superadmin" },
+  };
 }
 
 export async function redirectAuthenticatedAdult(request: Request): Promise<void> {

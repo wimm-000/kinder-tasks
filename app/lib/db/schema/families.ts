@@ -18,6 +18,8 @@ export const families = sqliteTable(
     }),
     deletionRequestedAt: timestamp("deletion_requested_at"),
     purgeAfter: timestamp("purge_after"),
+    disabledAt: timestamp("disabled_at"),
+    disabledReason: text("disabled_reason"),
     createdAt: timestamp("created_at").notNull().default(now),
     updatedAt: timestamp("updated_at")
       .notNull()
@@ -32,6 +34,7 @@ export const families = sqliteTable(
     ),
     index("families_status_idx").on(table.status),
     index("families_created_by_idx").on(table.createdByUserId),
+    index("families_purge_idx").on(table.status, table.purgeAfter),
   ],
 );
 

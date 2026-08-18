@@ -1,4 +1,4 @@
-import { ClipboardCheck, ListChecks, MailPlus, Smile, Users } from "lucide-react";
+import { ClipboardCheck, ListChecks, MailPlus, Shield, Smile, Users } from "lucide-react";
 import { Link, useLoaderData } from "react-router";
 
 import type { Route } from "./+types/app-family-dashboard";
@@ -55,6 +55,13 @@ export default function FamilyDashboard() {
           <h2 className="mt-6 font-display text-2xl font-semibold">{t("family.invitations")}</h2>
           <Button className="mt-6" variant="outline" asChild>
             <Link to={`/app/${page.family.familyId}/invitations`}>{t("family.invitations")}</Link>
+          </Button>
+        </article>
+        <article className="rounded-[1.75rem] border bg-card/80 p-7">
+          <Shield className="size-7 text-secondary" />
+          <h2 className="mt-6 font-display text-2xl font-semibold">Privacidad familiar</h2>
+          <Button className="mt-6" variant="outline" asChild>
+            <Link to={`/app/${page.family.familyId}/privacy`}>Gestionar datos</Link>
           </Button>
         </article>
       </div>

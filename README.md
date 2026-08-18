@@ -2,7 +2,7 @@
 
 PWA familiar para organizar tareas, pagas y ahorro con perfiles separados para adultos y menores.
 
-El alcance y las decisiones de arquitectura están documentados en [ARCHITECTURE.md](./ARCHITECTURE.md). Los resultados de cada fase están en [docs/PHASE_1.md](./docs/PHASE_1.md), [docs/PHASE_2.md](./docs/PHASE_2.md), [docs/PHASE_3.md](./docs/PHASE_3.md), [docs/PHASE_4.md](./docs/PHASE_4.md), [docs/PHASE_5.md](./docs/PHASE_5.md), [docs/PHASE_6.md](./docs/PHASE_6.md) y [docs/PHASE_7.md](./docs/PHASE_7.md).
+El alcance y las decisiones de arquitectura están documentados en [ARCHITECTURE.md](./ARCHITECTURE.md). Los resultados de cada fase están en [docs/](./docs), incluida la [Fase 8](./docs/PHASE_8.md).
 
 ## Requisitos
 
@@ -71,7 +71,10 @@ Variables requeridas en producción:
 - `BETTER_AUTH_SECRET`, aleatorio y con un mínimo de 32 caracteres
 - `APP_URL`, con la URL HTTPS canónica
 - `EMAIL_PROVIDER`
+- `SUPERADMIN_EMAILS`, lista separada por comas de cuentas verificadas que pueden recibir el rol global
 
 Las migraciones se aplican explícitamente con `pnpm db:migrate` antes del despliegue. No se ejecutan durante cada arranque serverless.
+
+Netlify ejecuta diariamente `process-retention` para aplicar los periodos documentados. `SUPERADMIN_EMAILS` solo promociona cuentas activas y verificadas; cada promoción queda auditada y la lista no degrada administradores existentes.
 
 El proveedor `console` solo funciona en desarrollo y escribe enlaces sensibles en la consola local. Producción permanecerá bloqueada hasta conectar un proveedor transaccional a la interfaz `EmailService`.

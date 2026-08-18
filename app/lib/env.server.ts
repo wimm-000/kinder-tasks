@@ -7,6 +7,7 @@ const serverEnvSchema = z.object({
   BETTER_AUTH_SECRET: z.string().min(32),
   APP_URL: z.url(),
   EMAIL_PROVIDER: z.enum(["console"]).default("console"),
+  SUPERADMIN_EMAILS: z.array(z.email()).default([]),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
@@ -27,6 +28,10 @@ export function getServerEnv(): ServerEnv {
       (isProduction ? undefined : "kinder-tasks-local-development-secret-change-before-production"),
     APP_URL: process.env.APP_URL ?? (isProduction ? undefined : "http://localhost:5173"),
     EMAIL_PROVIDER: process.env.EMAIL_PROVIDER,
+    SUPERADMIN_EMAILS: (process.env.SUPERADMIN_EMAILS ?? "")
+      .split(",")
+      .map((email) => email.trim().toLowerCase())
+      .filter(Boolean),
   });
 
   if (!parsed.success) {

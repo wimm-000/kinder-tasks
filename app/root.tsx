@@ -1,10 +1,12 @@
 import {
   isRouteErrorResponse,
+  data,
   Links,
   Meta,
   Outlet,
   Scripts,
   ScrollRestoration,
+  useRouteLoaderData,
 } from "react-router";
 import { useEffect } from "react";
 
@@ -18,7 +20,37 @@ export const links: Route.LinksFunction = () => [
   { rel: "apple-touch-icon", href: "/apple-touch-icon-180x180.png" },
 ];
 
+export function loader() {
+  const nonce = crypto.randomUUID();
+  const scriptPolicy = [
+    `'self'`,
+    `'nonce-${nonce}'`,
+    ...(import.meta.env.DEV ? ["'unsafe-eval'"] : []),
+  ];
+  const contentSecurityPolicy = [
+    "default-src 'self'",
+    `script-src ${scriptPolicy.join(" ")}`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data:",
+    "font-src 'self'",
+    "connect-src 'self' ws: wss:",
+    "worker-src 'self' blob:",
+    "manifest-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+  ].join("; ");
+  return data({ nonce }, { headers: { "content-security-policy": contentSecurityPolicy } });
+}
+
+export function headers({ loaderHeaders }: Route.HeadersArgs) {
+  return loaderHeaders;
+}
+
 export function Layout({ children }: { children: React.ReactNode }) {
+  const rootData = useRouteLoaderData<typeof loader>("root");
+  const nonce = rootData?.nonce;
   useEffect(() => {
     document.documentElement.dataset.hydrated = "true";
   }, []);
@@ -30,12 +62,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#174b4a" />
         <Meta />
-        <Links />
+        <Links nonce={nonce} />
       </head>
       <body className="min-h-dvh bg-background text-foreground antialiased">
         {children}
-        <ScrollRestoration />
-        <Scripts />
+        <ScrollRestoration nonce={nonce} />
+        <Scripts nonce={nonce} />
       </body>
     </html>
   );

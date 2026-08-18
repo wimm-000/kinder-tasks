@@ -114,6 +114,8 @@ export const userProfiles = sqliteTable(
     blockedAt: timestamp("blocked_at"),
     blockedReason: text("blocked_reason"),
     deletedAt: timestamp("deleted_at"),
+    deletionRequestedAt: timestamp("deletion_requested_at"),
+    purgeAfter: timestamp("purge_after"),
     createdAt: timestamp("created_at").notNull().default(now),
     updatedAt: timestamp("updated_at")
       .notNull()
@@ -128,6 +130,7 @@ export const userProfiles = sqliteTable(
     ),
     index("user_profiles_global_role_idx").on(table.globalRole),
     index("user_profiles_status_idx").on(table.status),
+    index("user_profiles_purge_idx").on(table.status, table.purgeAfter),
   ],
 );
 

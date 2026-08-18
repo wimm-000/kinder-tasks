@@ -284,10 +284,10 @@ export const es = {
   "security.sessions.revoked": "Las demás sesiones se han revocado.",
   "security.delete.title": "Eliminar cuenta",
   "security.delete.description":
-    "Esta acción elimina la cuenta de autenticación. Cuando existan familias, se exigirá transferirlas o eliminarlas primero.",
+    "La cuenta se desactivará de inmediato y podrás recuperarla durante 30 días. Las familias sin otro adulto se programarán para eliminación; los datos compartidos permanecerán con sus demás miembros.",
   "security.delete.password": "Contraseña actual",
   "security.delete.confirmation": "Escribe ELIMINAR para confirmar",
-  "security.delete.submit": "Eliminar mi cuenta",
+  "security.delete.submit": "Programar eliminación",
   "security.delete.submitting": "Eliminando…",
   "security.delete.confirmationError": "Escribe ELIMINAR exactamente para continuar.",
   "home.eyebrow": "Pequeños hábitos, grandes aprendizajes",
@@ -357,10 +357,13 @@ export const es = {
     "Kinder Tasks aplica minimización de datos y mantiene los perfiles infantiles bajo control parental.",
   "legal.privacy.children.title": "Datos infantiles",
   "legal.privacy.children.body":
-    "El MVP solo utilizará alias, avatares predefinidos y colores. No solicitará apellidos, fecha de nacimiento, correo ni fotografías reales de menores.",
+    "Solo utilizamos alias, avatares predefinidos y colores. No solicitamos apellidos, fecha de nacimiento, correo ni fotografías reales de menores.",
   "legal.privacy.control.title": "Tu control",
   "legal.privacy.control.body":
-    "Las familias podrán exportar sus datos, revocar sesiones y solicitar la eliminación de su información.",
+    "Puedes exportar tus datos, revocar sesiones y solicitar la eliminación de tu cuenta o familia. La eliminación se puede cancelar durante 30 días.",
+  "legal.privacy.retention.title": "Conservación",
+  "legal.privacy.retention.body":
+    "Las invitaciones y logs técnicos se conservan hasta 90 días; la auditoría sensible minimizada, hasta 12 meses. Al terminar el periodo de recuperación se purgan los datos familiares privados y se anonimizan las referencias adultas que deben conservarse para la integridad del registro.",
   "legal.terms.title": "Términos básicos",
   "legal.terms.intro":
     "Kinder Tasks es una herramienta de organización familiar y no presta servicios bancarios ni ejecuta pagos reales.",
