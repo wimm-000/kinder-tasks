@@ -12,6 +12,7 @@ export const families = sqliteTable(
     currency: text("currency").notNull().default("EUR"),
     timezone: text("timezone").notNull().default("Europe/Madrid"),
     status: text("status").notNull().default("active"),
+    creationRequestId: text("creation_request_id"),
     createdByUserId: text("created_by_user_id").references(() => user.id, {
       onDelete: "set null",
       onUpdate: "cascade",
@@ -34,6 +35,7 @@ export const families = sqliteTable(
     ),
     index("families_status_idx").on(table.status),
     index("families_created_by_idx").on(table.createdByUserId),
+    uniqueIndex("families_creation_request_unique").on(table.creationRequestId),
     index("families_purge_idx").on(table.status, table.purgeAfter),
   ],
 );

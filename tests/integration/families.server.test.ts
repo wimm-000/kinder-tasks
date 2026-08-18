@@ -72,6 +72,15 @@ describe("family tenancy and invitations", () => {
     ).toMatchObject({ action: "family.created", result: "success" });
   });
 
+  it("deduplicates repeated family creation requests", async () => {
+    const clientRequestId = "0198b123-0000-7000-8000-000000000099";
+    const first = await service.createFamily(paulaId, "Familia Única", clientRequestId);
+    const repeated = await service.createFamily(paulaId, "Familia Única", clientRequestId);
+
+    expect(repeated).toBe(first);
+    expect((await service.listFamilies(paulaId)).filter(({ id }) => id === first)).toHaveLength(1);
+  });
+
   it("blocks horizontal access to another family", async () => {
     const saraFamily = await service.createFamily(saraId, "Familia Martín");
     await expect(service.requireFamilyParent(paulaId, saraFamily)).rejects.toMatchObject({
@@ -83,7 +92,9 @@ describe("family tenancy and invitations", () => {
   });
 
   it("stores a token hash and accepts only the matching account", async () => {
-    const familyId = (await service.listFamilies(paulaId))[0]!.id;
+    const familyId = (await service.listFamilies(paulaId)).find(
+      ({ name }) => name === "Familia Robles",
+    )!.id;
     await service.inviteParent({
       userId: paulaId,
       inviterName: "Paula Robles",

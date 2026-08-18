@@ -98,19 +98,22 @@ describe("task completion and rewards", () => {
     expect(await taskService.requestTaskCompletion(childRequest, assignmentId, requestId)).toBe(
       first,
     );
-    await taskService.reviewTaskRequest({
-      userId,
-      familyId,
-      requestId: first,
-      decision: "approve",
-    });
-    await taskService.reviewTaskRequest({
-      userId,
-      familyId,
-      requestId: first,
-      decision: "approve",
-    });
     const { moneyTransactions, taskCompletionRequests } = await import("~/lib/db/schema");
+    expect(
+      (await db.select().from(moneyTransactions)).filter((row) => row.type === "task_reward"),
+    ).toHaveLength(0);
+    await taskService.reviewTaskRequest({
+      userId,
+      familyId,
+      requestId: first,
+      decision: "approve",
+    });
+    await taskService.reviewTaskRequest({
+      userId,
+      familyId,
+      requestId: first,
+      decision: "approve",
+    });
     expect(await db.select().from(taskCompletionRequests)).toHaveLength(1);
     expect(
       (await db.select().from(moneyTransactions)).filter((row) => row.type === "task_reward"),
@@ -120,6 +123,40 @@ describe("task completion and rewards", () => {
         where: eq(taskCompletionRequests.id, first),
       }),
     ).toMatchObject({ status: "approved" });
+  });
+  it("lets a parent complete an available task and pays it exactly once", async () => {
+    const assignmentId = (await taskService.listChildTasksForParent(userId, familyId, childId))
+      .tasks[0]!.assignmentId;
+    const clientRequestId = "0198b123-0000-7000-8000-000000000398";
+    const first = await taskService.completeTaskAsParent({
+      userId,
+      familyId,
+      childId,
+      assignmentId,
+      clientRequestId,
+    });
+    expect(
+      await taskService.completeTaskAsParent({
+        userId,
+        familyId,
+        childId,
+        assignmentId,
+        clientRequestId,
+      }),
+    ).toBe(first);
+
+    const { moneyTransactions, taskCompletionRequests } = await import("~/lib/db/schema");
+    expect(await db.select().from(taskCompletionRequests)).toHaveLength(2);
+    const rewards = (await db.select().from(moneyTransactions)).filter(
+      (row) => row.type === "task_reward",
+    );
+    expect(rewards).toHaveLength(2);
+    expect(rewards.reduce((total, reward) => total + reward.amountCents, 0)).toBe(300);
+    expect(
+      await db.query.taskCompletionRequests.findFirst({
+        where: eq(taskCompletionRequests.id, first),
+      }),
+    ).toMatchObject({ status: "approved", reviewedByUserId: userId });
   });
   it("accepts repeated sync payloads without creating another request", async () => {
     const { action } = await import("~/routes/api-kids-sync");
@@ -147,7 +184,7 @@ describe("task completion and rewards", () => {
     expect(await invoke()).toMatchObject({ results: [{ status: "synced" }] });
     expect(await invoke()).toMatchObject({ results: [{ status: "synced" }] });
     const { taskCompletionRequests } = await import("~/lib/db/schema");
-    expect(await db.select().from(taskCompletionRequests)).toHaveLength(1);
+    expect(await db.select().from(taskCompletionRequests)).toHaveLength(2);
   });
   it("edits assignments and archives without deleting history", async () => {
     await taskService.updateTask({
@@ -167,6 +204,6 @@ describe("task completion and rewards", () => {
     await taskService.archiveTask(userId, familyId, taskId);
     expect((await taskService.listFamilyTasks(userId, familyId)).tasks).toHaveLength(0);
     const { taskCompletionRequests } = await import("~/lib/db/schema");
-    expect(await db.select().from(taskCompletionRequests)).toHaveLength(1);
+    expect(await db.select().from(taskCompletionRequests)).toHaveLength(2);
   });
 });

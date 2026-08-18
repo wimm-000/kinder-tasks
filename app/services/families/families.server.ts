@@ -49,21 +49,53 @@ export async function listFamilies(userId: string) {
     .orderBy(asc(families.name));
 }
 
-export async function createFamily(userId: string, name: string) {
+export async function createFamily(userId: string, name: string, clientRequestId?: string) {
+  if (clientRequestId) {
+    const existing = await db.query.families.findFirst({
+      where: and(
+        eq(families.creationRequestId, clientRequestId),
+        eq(families.createdByUserId, userId),
+      ),
+      columns: { id: true },
+    });
+    if (existing) return existing.id;
+  }
+
   const familyId = uuidv7();
-  await db.transaction(async (tx) => {
-    await tx.insert(families).values({ id: familyId, name, createdByUserId: userId });
-    await tx.insert(familyMembers).values({ id: uuidv7(), familyId, userId });
-    await tx.insert(auditLogs).values(
-      auditValues({
-        userId,
-        familyId,
-        action: "family.created",
-        targetType: "family",
-        targetId: familyId,
-      }),
-    );
-  });
+  try {
+    await db.transaction(async (tx) => {
+      await tx
+        .insert(families)
+        .values({
+          id: familyId,
+          name,
+          createdByUserId: userId,
+          creationRequestId: clientRequestId,
+        });
+      await tx.insert(familyMembers).values({ id: uuidv7(), familyId, userId });
+      await tx.insert(auditLogs).values(
+        auditValues({
+          userId,
+          familyId,
+          action: "family.created",
+          targetType: "family",
+          targetId: familyId,
+        }),
+      );
+    });
+  } catch (error) {
+    const repeated = clientRequestId
+      ? await db.query.families.findFirst({
+          where: and(
+            eq(families.creationRequestId, clientRequestId),
+            eq(families.createdByUserId, userId),
+          ),
+          columns: { id: true },
+        })
+      : undefined;
+    if (repeated) return repeated.id;
+    throw error;
+  }
   return familyId;
 }
 

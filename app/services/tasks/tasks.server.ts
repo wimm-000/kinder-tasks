@@ -215,8 +215,7 @@ export async function createTask(input: {
   return taskId;
 }
 
-export async function listChildTasks(request: Request, now = new Date()) {
-  const context = await requireChildContext(request);
+async function listAvailableTasks(familyId: string, childId: string, now: Date) {
   const rows = await db
     .select({
       assignmentId: taskAssignments.id,
@@ -241,8 +240,8 @@ export async function listChildTasks(request: Request, now = new Date()) {
     )
     .where(
       and(
-        eq(taskAssignments.childId, context.childId),
-        eq(taskAssignments.familyId, context.familyId),
+        eq(taskAssignments.childId, childId),
+        eq(taskAssignments.familyId, familyId),
         eq(taskAssignments.status, "active"),
         eq(tasks.status, "active"),
       ),
@@ -256,34 +255,58 @@ export async function listChildTasks(request: Request, now = new Date()) {
     .from(taskCompletionRequests)
     .where(
       and(
-        eq(taskCompletionRequests.childId, context.childId),
-        eq(taskCompletionRequests.familyId, context.familyId),
+        eq(taskCompletionRequests.childId, childId),
+        eq(taskCompletionRequests.familyId, familyId),
       ),
     );
+  return rows.flatMap((task) => {
+    const period = getTaskPeriod(
+      {
+        type: task.type as "one_off" | "recurring" | "open",
+        recurrenceUnit: task.recurrenceUnit as "daily" | "weekly" | "monthly" | null,
+        recurrenceInterval: task.recurrenceInterval,
+        recurrenceWeekday: task.recurrenceWeekday,
+        recurrenceMonthDay: task.recurrenceMonthDay,
+        openLimitPeriod: task.openLimitPeriod as "day" | "week" | "month" | null,
+        startsAt: task.startsAt,
+        endsAt: task.endsAt,
+      },
+      now,
+    );
+    if (!period) return [];
+    const used = requests.filter(
+      (entry) => entry.assignmentId === task.assignmentId && entry.periodKey === period.key,
+    ).length;
+    const limit = task.type === "open" ? (task.openLimitCount ?? 1) : 1;
+    return used < limit ? [{ ...task, periodKey: period.key, occurrenceNumber: used + 1 }] : [];
+  });
+}
+
+export async function listChildTasks(request: Request, now = new Date()) {
+  const context = await requireChildContext(request);
   return {
     context,
-    tasks: rows.flatMap((task) => {
-      const period = getTaskPeriod(
-        {
-          type: task.type as "one_off" | "recurring" | "open",
-          recurrenceUnit: task.recurrenceUnit as "daily" | "weekly" | "monthly" | null,
-          recurrenceInterval: task.recurrenceInterval,
-          recurrenceWeekday: task.recurrenceWeekday,
-          recurrenceMonthDay: task.recurrenceMonthDay,
-          openLimitPeriod: task.openLimitPeriod as "day" | "week" | "month" | null,
-          startsAt: task.startsAt,
-          endsAt: task.endsAt,
-        },
-        now,
-      );
-      if (!period) return [];
-      const used = requests.filter(
-        (entry) => entry.assignmentId === task.assignmentId && entry.periodKey === period.key,
-      ).length;
-      const limit = task.type === "open" ? (task.openLimitCount ?? 1) : 1;
-      return used < limit ? [{ ...task, periodKey: period.key, occurrenceNumber: used + 1 }] : [];
-    }),
+    tasks: await listAvailableTasks(context.familyId, context.childId, now),
   };
+}
+
+export async function listChildTasksForParent(
+  userId: string,
+  familyId: string,
+  childId: string,
+  now = new Date(),
+) {
+  const context = await requireFamilyParent(userId, familyId);
+  const child = await db.query.childProfiles.findFirst({
+    where: and(
+      eq(childProfiles.id, childId),
+      eq(childProfiles.familyId, familyId),
+      eq(childProfiles.status, "active"),
+    ),
+    columns: { id: true, alias: true },
+  });
+  if (!child) throw data("Perfil infantil no encontrado.", { status: 404 });
+  return { context, child, tasks: await listAvailableTasks(familyId, childId, now) };
 }
 
 export async function requestTaskCompletion(
@@ -330,7 +353,11 @@ export async function requestTaskCompletion(
     });
   } catch (error) {
     const repeated = await db.query.taskCompletionRequests.findFirst({
-      where: eq(taskCompletionRequests.clientRequestId, clientRequestId),
+      where: and(
+        eq(taskCompletionRequests.clientRequestId, clientRequestId),
+        eq(taskCompletionRequests.familyId, context.familyId),
+        eq(taskCompletionRequests.childId, context.childId),
+      ),
     });
     if (repeated) return repeated.id;
     const refreshed = await listChildTasks(request);
@@ -340,6 +367,96 @@ export async function requestTaskCompletion(
     throw error;
   }
   return id;
+}
+
+export async function completeTaskAsParent(input: {
+  userId: string;
+  familyId: string;
+  childId: string;
+  assignmentId: string;
+  clientRequestId: string;
+}) {
+  await requireFamilyParent(input.userId, input.familyId);
+  const child = await db.query.childProfiles.findFirst({
+    where: and(
+      eq(childProfiles.id, input.childId),
+      eq(childProfiles.familyId, input.familyId),
+      eq(childProfiles.status, "active"),
+    ),
+    columns: { id: true },
+  });
+  if (!child) throw data("Perfil infantil no encontrado.", { status: 404 });
+
+  const existing = await db.query.taskCompletionRequests.findFirst({
+    where: and(
+      eq(taskCompletionRequests.clientRequestId, input.clientRequestId),
+      eq(taskCompletionRequests.familyId, input.familyId),
+      eq(taskCompletionRequests.childId, input.childId),
+    ),
+  });
+  if (existing) return existing.id;
+
+  const available = await listAvailableTasks(input.familyId, input.childId, new Date());
+  const task = available.find((entry) => entry.assignmentId === input.assignmentId);
+  if (!task) throw data("Esta tarea no está disponible.", { status: 409 });
+
+  const requestId = uuidv7();
+  const now = new Date();
+  try {
+    await db.transaction(async (tx) => {
+      await tx.insert(taskCompletionRequests).values({
+        id: requestId,
+        familyId: input.familyId,
+        taskId: task.taskId,
+        assignmentId: input.assignmentId,
+        childId: input.childId,
+        periodKey: task.periodKey,
+        occurrenceNumber: task.occurrenceNumber,
+        clientRequestId: input.clientRequestId,
+        status: "approved",
+        rewardCentsSnapshot: task.rewardCents,
+        reviewedAt: now,
+        reviewedByUserId: input.userId,
+      });
+      if (task.rewardCents > 0) {
+        await tx.insert(moneyTransactions).values({
+          id: uuidv7(),
+          familyId: input.familyId,
+          childId: input.childId,
+          amountCents: task.rewardCents,
+          type: "task_reward",
+          description: "Recompensa por tarea",
+          createdByKind: "user",
+          createdByUserId: input.userId,
+          taskId: task.taskId,
+          taskCompletionRequestId: requestId,
+          idempotencyKey: `task-reward:${requestId}`,
+          effectiveAt: now,
+        });
+      }
+      await tx.insert(auditLogs).values({
+        id: uuidv7(),
+        familyId: input.familyId,
+        actorType: "user",
+        actorUserId: input.userId,
+        action: "task.completed_by_parent",
+        targetType: "task_completion_request",
+        targetId: requestId,
+        result: "success",
+      });
+    });
+  } catch (error) {
+    const repeated = await db.query.taskCompletionRequests.findFirst({
+      where: and(
+        eq(taskCompletionRequests.clientRequestId, input.clientRequestId),
+        eq(taskCompletionRequests.familyId, input.familyId),
+        eq(taskCompletionRequests.childId, input.childId),
+      ),
+    });
+    if (repeated) return repeated.id;
+    throw error;
+  }
+  return requestId;
 }
 
 export async function listPendingRequests(userId: string, familyId: string) {
