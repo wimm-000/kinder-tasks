@@ -281,6 +281,36 @@ export async function revokeInvitation(userId: string, familyId: string, invitat
   if (!changed) throw data("La invitación ya no está disponible.", { status: 409 });
 }
 
+export async function deleteRevokedInvitation(
+  userId: string,
+  familyId: string,
+  invitationId: string,
+) {
+  await requireFamilyParent(userId, familyId);
+  await db.transaction(async (tx) => {
+    const deleted = await tx
+      .delete(familyInvitations)
+      .where(
+        and(
+          eq(familyInvitations.id, invitationId),
+          eq(familyInvitations.familyId, familyId),
+          eq(familyInvitations.status, "revoked"),
+        ),
+      )
+      .returning({ id: familyInvitations.id });
+    if (!deleted.length) throw data("Invitación revocada no encontrada.", { status: 404 });
+    await tx.insert(auditLogs).values(
+      auditValues({
+        userId,
+        familyId,
+        action: "invitation.deleted",
+        targetType: "invitation",
+        targetId: invitationId,
+      }),
+    );
+  });
+}
+
 export async function getInvitation(token: string) {
   const [invitation] = await db
     .select({

@@ -10,6 +10,7 @@ import { t } from "~/lib/i18n";
 import { requireSameOrigin } from "~/lib/security/origin.server";
 import { invitationSchema } from "~/schemas/families";
 import {
+  deleteRevokedInvitation,
   inviteParent,
   listInvitations,
   revokeInvitation,
@@ -30,6 +31,10 @@ export async function action({ request, params }: Route.ActionArgs) {
     if (form.intent === "revoke" && typeof form.invitationId === "string") {
       await revokeInvitation(session.auth.user.id, params.familyId, form.invitationId);
       return { success: "Invitación revocada." };
+    }
+    if (form.intent === "delete" && typeof form.invitationId === "string") {
+      await deleteRevokedInvitation(session.auth.user.id, params.familyId, form.invitationId);
+      return { success: "Invitación eliminada." };
     }
     const parsed = invitationSchema.safeParse(form);
     if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Datos no válidos." };
@@ -92,6 +97,14 @@ export default function Invitations() {
                 <input name="invitationId" type="hidden" value={invite.id} />
                 <Button type="submit" variant="ghost">
                   {t("family.invite.revoke")}
+                </Button>
+              </Form>
+            ) : invite.status === "revoked" ? (
+              <Form method="post">
+                <input name="intent" type="hidden" value="delete" />
+                <input name="invitationId" type="hidden" value={invite.id} />
+                <Button type="submit" variant="ghost">
+                  Eliminar
                 </Button>
               </Form>
             ) : null}

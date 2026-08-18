@@ -162,6 +162,18 @@ describe("family tenancy and invitations", () => {
       }),
     ).toMatchObject({ result: "failure" });
 
+    await service.deleteRevokedInvitation(paulaId, familyId, failed!.id);
+    expect(
+      await db.query.familyInvitations.findFirst({
+        where: eq(familyInvitations.id, failed!.id),
+      }),
+    ).toBeUndefined();
+    expect(
+      await db.query.auditLogs.findFirst({
+        where: and(eq(auditLogs.targetId, failed!.id), eq(auditLogs.action, "invitation.deleted")),
+      }),
+    ).toMatchObject({ result: "success" });
+
     emailProvider.setEmailServiceForTests(outbox);
   });
 });
