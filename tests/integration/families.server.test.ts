@@ -16,6 +16,7 @@ let db: typeof import("~/lib/db/client.server").db;
 let databaseClient: typeof import("~/lib/db/client.server").databaseClient;
 let service: typeof import("~/services/families/families.server");
 let outbox: InstanceType<typeof import("~/services/email/email-service.server").MemoryEmailService>;
+let emailProvider: typeof import("~/services/email/email.server");
 
 const paulaId = "0198b123-0000-7000-8000-000000000001";
 const saraId = "0198b123-0000-7000-8000-000000000002";
@@ -32,7 +33,7 @@ beforeAll(async () => {
   migrationClient.close();
 
   const emailModule = await import("~/services/email/email-service.server");
-  const emailProvider = await import("~/services/email/email.server");
+  emailProvider = await import("~/services/email/email.server");
   outbox = new emailModule.MemoryEmailService();
   emailProvider.setEmailServiceForTests(outbox);
   ({ db, databaseClient } = await import("~/lib/db/client.server"));
@@ -120,5 +121,47 @@ describe("family tenancy and invitations", () => {
         where: and(eq(familyMembers.familyId, familyId), eq(familyMembers.userId, saraId)),
       }),
     ).toMatchObject({ status: "active" });
+  });
+
+  it("revokes the invitation and returns a form-safe error when delivery fails", async () => {
+    const familyId = (await service.listFamilies(paulaId)).find(
+      ({ name }) => name === "Familia Robles",
+    )!.id;
+    emailProvider.setEmailServiceForTests({
+      send: async () => {
+        throw new Error("Provider unavailable");
+      },
+    });
+
+    await expect(
+      service.inviteParent({
+        userId: paulaId,
+        inviterName: "Paula Robles",
+        familyId,
+        email: "delivery-failure@example.test",
+      }),
+    ).rejects.toMatchObject({
+      data: expect.stringContaining("No pudimos enviar la invitación"),
+      init: { status: 502 },
+    });
+
+    const { auditLogs, familyInvitations } = await import("~/lib/db/schema");
+    const failed = await db.query.familyInvitations.findFirst({
+      where: and(
+        eq(familyInvitations.familyId, familyId),
+        eq(familyInvitations.emailNormalized, "delivery-failure@example.test"),
+      ),
+    });
+    expect(failed).toMatchObject({ status: "revoked" });
+    expect(
+      await db.query.auditLogs.findFirst({
+        where: and(
+          eq(auditLogs.targetId, failed!.id),
+          eq(auditLogs.action, "invitation.delivery_failed"),
+        ),
+      }),
+    ).toMatchObject({ result: "failure" });
+
+    emailProvider.setEmailServiceForTests(outbox);
   });
 });

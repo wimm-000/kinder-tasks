@@ -10,6 +10,16 @@ export interface EmailService {
 
 type EmailFetch = typeof fetch;
 
+export class EmailDeliveryError extends Error {
+  constructor(
+    message: string,
+    readonly status?: number,
+  ) {
+    super(message);
+    this.name = "EmailDeliveryError";
+  }
+}
+
 export class ResendEmailService implements EmailService {
   constructor(
     private readonly apiKey: string,
@@ -35,8 +45,9 @@ export class ResendEmailService implements EmailService {
 
     if (!response.ok) {
       const requestId = response.headers.get("x-resend-id") ?? response.headers.get("cf-ray");
-      throw new Error(
+      throw new EmailDeliveryError(
         `Resend email delivery failed with status ${response.status}${requestId ? ` (${requestId})` : ""}`,
+        response.status,
       );
     }
   }

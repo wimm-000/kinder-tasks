@@ -7,6 +7,7 @@ import { v7 as uuidv7 } from "uuid";
 import { db } from "~/lib/db/client.server";
 import { auditLogs, families, familyInvitations, familyMembers, user } from "~/lib/db/schema";
 import { getServerEnv } from "~/lib/env.server";
+import { EmailDeliveryError } from "~/services/email/email-service.server";
 import { sendEmail } from "~/services/email/email.server";
 
 const INVITATION_LIFETIME = 7 * 24 * 60 * 60 * 1000;
@@ -64,14 +65,12 @@ export async function createFamily(userId: string, name: string, clientRequestId
   const familyId = uuidv7();
   try {
     await db.transaction(async (tx) => {
-      await tx
-        .insert(families)
-        .values({
-          id: familyId,
-          name,
-          createdByUserId: userId,
-          creationRequestId: clientRequestId,
-        });
+      await tx.insert(families).values({
+        id: familyId,
+        name,
+        createdByUserId: userId,
+        creationRequestId: clientRequestId,
+      });
       await tx.insert(familyMembers).values({ id: uuidv7(), familyId, userId });
       await tx.insert(auditLogs).values(
         auditValues({
@@ -208,11 +207,49 @@ export async function inviteParent(input: {
   }
 
   const invitationUrl = new URL(`/invite/${token}`, getServerEnv().APP_URL).toString();
-  await sendEmail({
-    to: input.email,
-    subject: `Invitación a ${context.familyName}`,
-    text: `${input.inviterName} te ha invitado a compartir ${context.familyName} en Kinder Tasks. La invitación caduca en 7 días: ${invitationUrl}`,
-  });
+  try {
+    await sendEmail({
+      to: input.email,
+      subject: `Invitación a ${context.familyName}`,
+      text: `${input.inviterName} te ha invitado a compartir ${context.familyName} en Kinder Tasks. La invitación caduca en 7 días: ${invitationUrl}`,
+    });
+  } catch (error) {
+    const providerStatus = error instanceof EmailDeliveryError ? error.status : undefined;
+    await db.transaction(async (tx) => {
+      await tx
+        .update(familyInvitations)
+        .set({ status: "revoked", revokedAt: new Date() })
+        .where(
+          and(
+            eq(familyInvitations.id, invitationId),
+            eq(familyInvitations.familyId, input.familyId),
+            eq(familyInvitations.status, "pending"),
+          ),
+        );
+      await tx.insert(auditLogs).values({
+        id: uuidv7(),
+        familyId: input.familyId,
+        actorType: "user",
+        actorUserId: input.userId,
+        action: "invitation.delivery_failed",
+        targetType: "invitation",
+        targetId: invitationId,
+        result: "failure",
+        metadataJson: providerStatus ? JSON.stringify({ providerStatus }) : undefined,
+      });
+    });
+    console.warn(
+      JSON.stringify({
+        event: "invitation_delivery_failed",
+        invitationId,
+        providerStatus,
+      }),
+    );
+    throw data(
+      "No pudimos enviar la invitación. Revisa el remitente o el dominio configurado en Resend e inténtalo de nuevo.",
+      { status: 502 },
+    );
+  }
 }
 
 export async function revokeInvitation(userId: string, familyId: string, invitationId: string) {

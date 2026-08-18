@@ -2,7 +2,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 
-import { ResendEmailService } from "~/services/email/email-service.server";
+import { EmailDeliveryError, ResendEmailService } from "~/services/email/email-service.server";
 
 describe("ResendEmailService", () => {
   it("sends a text email with authenticated Resend API data", async () => {
@@ -48,6 +48,10 @@ describe("ResendEmailService", () => {
     const error = await service
       .send({ to: "user@example.test", subject: "Subject", text: "Body" })
       .catch((reason: unknown) => reason);
-    expect(error).toEqual(new Error("Resend email delivery failed with status 422 (request-id)"));
+    expect(error).toBeInstanceOf(EmailDeliveryError);
+    expect(error).toMatchObject({
+      message: "Resend email delivery failed with status 422 (request-id)",
+      status: 422,
+    });
   });
 });
